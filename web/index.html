@@ -165,9 +165,15 @@
           if (!res.ok) {
             throw new Error(data?.error || `HTTP ${res.status}`);
           }
-          console.log(data);
-          $("diff").textContent = (data.diff || "").replace(/\\n/g, "\n");
-          $("result").textContent = (data.result || "").replace(/\\n/g, "\n");
+          function unescapeText(s) {
+            return s
+              .replace(/\\n/g, "\n")
+              .replace(/\\t/g, "\t")
+              .replace(/\\r/g, "\r");
+          }
+
+          $("result").textContent = unescapeText(data.result || "");
+          $("diff").textContent   = unescapeText(data.diff || "");
           setStatus("OK");
         } catch (err) {
           setStatus("Error: " + (err?.message || err));
