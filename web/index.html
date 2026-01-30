@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Comby Playground</title>
+
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+      }
+
+      header {
+        padding: 12px 16px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      header input {
+        width: 140px;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        padding: 12px;
+      }
+    .panel {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    }
+
+      .panel h2 {
+        margin: 0;
+        padding: 10px 12px;
+        font-size: 14px;
+        border-bottom: 1px solid #eee;
+        background: #fafafa;
+      }
+
+      textarea {
+        flex: 1;
+        border: 0;
+        padding: 10px 12px;
+        resize: none;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 13px;
+      }
+
+      pre {
+        margin: 0;
+        padding: 10px 12px;
+        overflow: auto;
+        flex: 1;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 13px;
+        white-space: pre-wrap;
+      }
+
+      .row {
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        gap: 12px;
+      }
+
+      button {
+        padding: 8px 14px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        background: #fff;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .status {
+        color: #555;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <button id="runBtn">Apply</button>
+      <span class="status" id="status"></span>
+      <span style="flex:1"></span>
+    </header>
+
+    <main>
+      <div class="panel">
+        <h2>Source</h2>
+        <textarea id="source"></textarea>
+      </div>
+
+      <div class="row">
+        <div class="panel">
+          <h2>Match</h2>
+          <textarea id="match"></textarea>
+        </div>
+        <div class="panel">
+          <h2>Rewrite</h2>
+          <textarea id="rewrite"></textarea>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Diff</h2>
+        <pre id="diff"></pre>
+      </div>
+
+      <div class="panel">
+        <h2>Result</h2>
+        <pre id="result"></pre>
+      </div>
+    </main>
+
+    <script>
+      // Laisse vide si frontend et comby-server sont sur le même domaine
+      const API_BASE = "";
+
+      const $ = (id) => document.getElementById(id);
+      const statusEl = $("status");
+
+      function setStatus(msg) {
+        statusEl.textContent = msg || "";
+      }
+
+      // Valeurs par défaut
+      $("source").value = "foo(a, b)\nfoo(x, y)\n";
+      $("match").value = "foo(:[1], :[2])";
+      $("rewrite").value = "bar(:[2], :[1])";
+
+      $("runBtn").addEventListener("click", async () => {
+        $("runBtn").disabled = true;
+        setStatus("Running…");
+
+        const payload = {
+          source: $("source").value,
+          match: $("match").value,
+          rewrite: $("rewrite").value,
+          id: 0,
+        };
+
+        try {
+          const res = await fetch(`${API_BASE}/rewrite`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data?.error || `HTTP ${res.status}`);
+          }
+          console.log(data);
+          $("diff").textContent = (data.diff || "").replace(/\\n/g, "\n");
+          $("result").textContent = (data.result || "").replace(/\\n/g, "\n");
+          setStatus("OK");
+        } catch (err) {
+          setStatus("Error: " + (err?.message || err));
+        } finally {
+          $("runBtn").disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
